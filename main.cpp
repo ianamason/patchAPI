@@ -40,7 +40,7 @@ class NoopSnippet : public Snippet {
 public:
   bool generate(Point *pt, Buffer &buffer){
     uint8_t byte = 0x90;
-    cerr << "inserting a no op\n" << endl;
+    cerr << "NoopSnippet.generate: inserting a no op\n" << endl;
     buffer.push_back(byte);
     return true;
   }
