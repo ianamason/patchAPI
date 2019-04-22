@@ -1,17 +1,7 @@
-#include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <iterator>
-#include <string>
 #include <vector>
 #include <iterator>
-
 #include <iostream>
-
-// for stat
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 // symtabAPI
 #include "Symtab.h"
@@ -30,9 +20,7 @@
 
 using namespace std;
 using namespace Dyninst;
-
 using namespace PatchAPI;
-
 
 
 class NoopSnippet : public Snippet {
@@ -56,19 +44,13 @@ int main(int argc, const char *argv[]) {
   }
   const char* input_binary = argv[1];
   const char* output_binary = argv[2];
-  struct stat sbuf;
-
-  if(stat(input_binary,  &sbuf) < 0) {
-    cerr << "Could not find the binary: " << input_binary << endl;
-    return 1;
-  }
 
   /* Open the specified binary */
   SymtabAPI::Symtab *symtab = NULL;
-    if(!SymtabAPI::Symtab::openFile(symtab, input_binary)) {
-      cerr <<  "SymtabAPI::Symtab couldn't open: " << input_binary << endl;
-      return 1;
-    }
+  if(!SymtabAPI::Symtab::openFile(symtab, input_binary)) {
+    cerr <<  "SymtabAPI::Symtab couldn't open: " << input_binary << endl;
+    return 1;
+  }
 
   ParseAPI::SymtabCodeSource *sts = new ParseAPI::SymtabCodeSource(symtab);
 
