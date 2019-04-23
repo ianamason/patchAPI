@@ -22,3 +22,11 @@ The fact that one never sees:
 NoopSnippet.generate: inserting a no op
 ```
 in the output is the issue at hand.
+
+There is also a hybrid approach described in `hybrid_main.cpp` and the corresponding `make target`
+
+```
+make hybrid_test
+```
+which does seem to work. Still no clue why the original doesn't work. Or whether, if it worked, it would
+patch the binary in the same way.
