@@ -1,22 +1,21 @@
-#include <stdint.h>
+// DynInst
+#include "BPatch.h"
+#include "BPatch_binaryEdit.h"
+#include "BPatch_image.h"
+#include "BPatch_function.h"
+#include "BPatch_object.h"
+#include "BPatch_point.h"
+#include "BPatch_Vector.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <iterator>
+#include <string>
 #include <vector>
 #include <iterator>
-#include <iostream>
-
-// symtabAPI
-#include "Symtab.h"
-
-// parseAPI
-#include "CodeSource.h"
-#include "CodeObject.h"
-#include "CFG.h"
 
 // patchAPI
-#include "AddrSpace.h"
-#include "PatchObject.h"
-#include "PatchCFG.h"
 #include "PatchMgr.h"
-
 
 using namespace std;
 using namespace Dyninst;
@@ -28,12 +27,15 @@ class NoopSnippet : public Snippet {
 public:
   bool generate(Point *pt, Buffer &buffer){
     uint8_t byte = 0x90;
-    cerr << "NoopSnippet.generate: inserting a no op\n" << endl;
-    buffer.push_back(byte);
+    cerr << "inserting a no op @" << pt << endl;
+    for(int i = 0; i < 10; i++){
+      buffer.push_back(byte);
+    }
     return true;
   }
 
 };
+
 
 
 int main(int argc, const char *argv[]) {
@@ -42,25 +44,35 @@ int main(int argc, const char *argv[]) {
     cerr << "Usage:\n\t" << argv[0] << " <input binary> <output binary path>" << endl;
     return 1;
   }
+
   const char* input_binary = argv[1];
   const char* output_binary = argv[2];
 
-  /* Open the specified binary */
-  SymtabAPI::Symtab *symtab = NULL;
-  if(!SymtabAPI::Symtab::openFile(symtab, input_binary)) {
-    cerr <<  "SymtabAPI::Symtab couldn't open: " << input_binary << endl;
-    return 1;
+  BPatch bpatch;
+
+  BPatch_binaryEdit* app = bpatch.openBinary(input_binary, false);
+
+  if(app == NULL){
+    return 0;
   }
 
-  ParseAPI::SymtabCodeSource *sts = new ParseAPI::SymtabCodeSource(symtab);
+  cout << "app OK" << endl;
 
-  ParseAPI::CodeObject *co = new ParseAPI::CodeObject(sts, NULL, NULL);
+  BPatch_image* image = app->getImage();
 
-  PatchObject* binobj =  PatchObject::create(co, 0);
+  cout << "image OK" << endl;
 
-  AddrSpace* as = AddrSpace::create(binobj);
+  vector<BPatch_object*> objects;
 
-  PatchMgrPtr patchMgr = PatchMgr::create(as);
+  image->getObjects(objects);
+
+  cout << "objects: " << objects.size() << endl;
+
+  PatchMgrPtr patchMgr = PatchAPI::convert(image);
+
+  BPatch_object* batchObj = objects[0];
+
+  PatchObject* binobj = PatchAPI::convert(batchObj);
 
   Patcher patcher(patchMgr);
 
@@ -69,6 +81,7 @@ int main(int argc, const char *argv[]) {
   vector<PatchFunction*> functions;
 
   binobj->funcs(back_inserter(functions));
+
 
   for(vector<PatchFunction*>::iterator funIter = functions.begin(); funIter != functions.end(); funIter++){
     PatchFunction *fun = *funIter;
@@ -81,7 +94,7 @@ int main(int argc, const char *argv[]) {
 
     for(vector<Point*>::iterator pointIter = f_entryPoints.begin(); pointIter!= f_entryPoints.end(); pointIter++){
       Point* point = *pointIter;
-      cerr << "PATCHING" << endl;
+      cerr << "Patching @ " << point << endl;
       patcher.add(PushBackCommand::create(point, snippet));
     }
 
@@ -89,10 +102,11 @@ int main(int argc, const char *argv[]) {
 
   patcher.commit();
 
-  // maybe we need to write something else out?
-  symtab->emit(output_binary);
+  cout << "Commited" << endl;
 
+  app->writeFile(output_binary);
 
-  cout << "OK" << endl;
+  cout << "Written" << endl;
+
 
 }
